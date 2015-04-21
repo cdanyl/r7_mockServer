@@ -2,8 +2,18 @@
   "name": "r7_mockServer",
   "version": "0.0.1",
   "description": "R7 MockServer for user settings storage",
+  "scripts": {
+    "start": "node server.js",
+    "test": "mocha test"
+  },
+  "main": "server.js",
   "dependencies": {
     "mongojs": "^0.18.2",
     "restify": "^3.0.2"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*",
+    "supertest": "*"
   }
 }
