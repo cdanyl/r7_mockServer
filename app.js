@@ -1,14 +1,11 @@
 var restify = require('restify');
 var mongojs = require("mongojs");
 
-/* SERVER CONFIGURATION */
-var PORT = 3000;
-var SERVER = "localhost";
+// PROJECT MODULES
+var Config = require('./config');
 
-/* MONGO CONFIGURATION */
-var MONGO_PORT = 27017;
-var MONGO_DBSERVER = "localhost";
-var MONGO_DBNAME = "r7_userSettings";
+/* API VERSION */
+var API_VERSION = '0.0.1';
 
 var server = restify.createServer({
     name: "user settings mock server"
@@ -18,15 +15,17 @@ server.use(restify.queryParser());
 server.use(restify.bodyParser());
 server.use(restify.CORS());
 
-var connection_string = MONGO_DBSERVER + ':' + MONGO_PORT + '/' + MONGO_DBNAME;
+// Mongo
+var connection_string = Config.DB_SERVER + ':' + Config.DB_PORT + '/' + Config.DB_NAME;
 var db = mongojs(connection_string, ['userSettings']);
 var settings = db.collection("userSettings");
 
+// Routes
 var PATH = '/userSettings';
-server.get({path: PATH + '/getUsers', version: '0.0.1'}, findAllUsers);
-server.get({path: PATH + '/getUser', version: '0.0.1'}, findUser);
-server.post({path: PATH, version: '0.0.1'}, postNewUser);
-server.get({path: PATH + '/deleteUser', version: '0.0.1'}, deleteUser);
+server.get({path: PATH + '/getUsers', version: API_VERSION}, findAllUsers);
+server.get({path: PATH + '/getUser', version: API_VERSION}, findUser);
+server.post({path: PATH, version: API_VERSION}, postNewUser);
+server.get({path: PATH + '/deleteUser', version: API_VERSION}, deleteUser);
 
 function findAllUsers(req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -93,6 +92,7 @@ function deleteUser(req, res, next) {
     })
 }
 
-server.listen(PORT, SERVER, function () {
+// Server Connection
+server.listen(Config.AMAZON_PORT, Config.AMAZON_SERVER, function () {
     console.log('%s listening at %s ', server.name, server.url);
 });
