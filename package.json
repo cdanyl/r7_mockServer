@@ -4,7 +4,7 @@
   "description": "R7 MockServer for user settings storage",
   "scripts": {
     "start": "node server.js",
-    "test": "npm start | mocha test"
+    "test": "node_modules/.bin/mocha -w"
   },
   "main": "server.js",
   "dependencies": {
