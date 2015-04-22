@@ -1,3 +1,18 @@
+#Mock Server for user settings storage#
+
+
+## API ##
+
+| Routes                        | HTTP Verb     | Description                |
+| ------------------------------|:--------------|:---------------------------|
+| /userSettings/getUsers        | GET           | Get all the users          |
+| /userSettings                 | POST          | Create a new user settings |
+| /userSettings/getUser?msd=    | GET           | Get a single user          |
+| /userSettings/deleteUser?msd= | GET           | Delete a user setting      |
+
+### Connect to the server ###
+Use the Amazon AWS public adress: 
+
 Unit Test
 -------------
 The test framework of choice for this mock server is Mocha:

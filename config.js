@@ -1,4 +1,3 @@
-var utils = require('./utils');
 
 /**
  * This module contains constants and parameters.
@@ -8,7 +7,7 @@ var Config = {
     DB_SERVER: "localhost",
     DB_PORT: 27017,
     DB_NAME: "r7_userSettings",
-    AMAZON_SERVER: utils.getLocalIp(),
+    AMAZON_SERVER: "localhost",
     AMAZON_PORT: 3000
 };
 
