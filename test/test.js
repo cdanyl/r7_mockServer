@@ -1,97 +1,120 @@
-var restify = require('restify');
-var mongojs = require("mongojs");
-var Config = require('../config');
-var should = require('should');
+var restify = require('restify'),
+    mongojs = require('mongojs'),
+    should = require('should');
 
-// init the test client
-var client = restify.createJsonClient({
-    version: '0.0.1',
-    url: 'http://localhost:3000'
-});
+///--- PROJECT MODULES
+var Config = require('../config');
+var crud = require('../crud');
+
+///--- Globals
+var SERVER,
+    TEST_PORT = '2387',
+    TEST_SERVER = '127.0.0.1';
+
+function postNewUser (req, res, next) {
+    var user = {};
+    user.name = req.params.name;
+    user.msd = req.params.msd;
+    user.value = req.params.value;
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    crud.settings.save(user, function (err, success) {
+        console.log('Response success ' + success);
+        console.log('Response error ' + err);
+        if (success) {
+            res.send(201, user);
+            return next();
+        } else {
+            return next(err);
+        }
+    });
+}
 
 describe('Routing', function () {
 
     before(function (done) {
-        // Mongo db connection
-        var connection_string = Config.DB_SERVER + ':' + Config.DB_PORT + '/' + Config.DB_NAME;
-        mongojs.connect(connection_string);
-        done();
+        try {
+
+            // Mongo
+            crud.connect(Config.DB_SERVER + ':' + Config.DB_PORT + '/' + Config.DB_NAME);
+
+            SERVER = restify.createServer({
+                name: "user settings mock server"
+            });
+
+            SERVER.use(restify.acceptParser(['json', 'text/plain']));
+            SERVER.use(restify.jsonp()); // Added for GH-778
+            SERVER.use(restify.dateParser());
+            SERVER.use(restify.authorizationParser());
+            SERVER.use(restify.queryParser());
+            SERVER.use(restify.bodyParser());
+
+            SERVER.get('/userSettings/getUsers', crud.findAllUsers);
+            SERVER.get('/userSettings/getUser', crud.findUser);
+            SERVER.post('/userSettings', crud.postNewUser);
+            SERVER.get('/userSettings/deleteUser', crud.deleteUser);
+
+            SERVER.listen(TEST_PORT, TEST_SERVER, function () {
+                console.log('%s listening at %s', SERVER.name, SERVER.url);
+                TEST_PORT = SERVER.address().port;
+
+                done();
+            });
+        } catch (e) {
+            console.error(e.stack);
+            process.exit(1);
+        }
     });
 
-    describe('service: getUsers', function () {
-
-        //it('listen and close (port only)', function (t) {
-        //    var server = restify.createServer();
-        //    server.listen(4673, function () {
-        //        server.close();
-        //        });
-        //    });
-
-        //before(function() {
-        //    server = restify.createServer();
-        //    server.listen(4242);
-        //});
-        //
-        //after(function(){
-        //    server.close();
-        //});
-
-        it('should get a 200 response', function (done) {
-            client.get('/userSettings/getUsers', function (err, req, res, data) {
-                if (err) {
-                    throw new Error(err);
-                }
-                else {
-                    if (res.code == 200) {
-                        throw new Error('valid response from /userSettings/getUsers');
-                    }
-                    done();
-                }
+    after(function (done) {
+        try {
+            SERVER.close(function () {
+                SERVER = null;
+                done();
             });
-        });
+        } catch (e) {
+            console.error(e.stack);
+            process.exit(1);
+        }
+    });
 
-        //it('should Post a new user', function (done) {
-        //    var user = {
-        //        name: 'test name',
-        //        msd: '1234',
-        //        value: {'tt': 'tt'},
-        //        postedOn: new Date()
-        //    };
-        //
-        //    client
-        //        .post('/userSettings')
-        //        .send(201, user)
-        //        .end(function (err, res) {
-        //            if (err) {
-        //                throw err;
-        //            }
-        //            // this is should.js syntax, very clear
-        //            res.should.have.status(201);
-        //            done();
-        //        });
-        //});
+    it('Try to get all users', function (done) {
+        var client = restify.createJsonClient('http://' + TEST_SERVER + ':' + TEST_PORT);
+        client.agent = false;
 
-        describe('200 response check', function() {
-            it('should get a 200 response', function(done) {
-                    var user = {
-                        name: 'test name',
-                        msd: '1234',
-                        value: {'tt': 'tt'},
-                        postedOn: new Date()
-                    };
-                client.post('/userSettings', user, function(err, req, res, data) {
-                    if (err) {
-                        throw new Error(err);
-                    }
-                    else {
-
-                        if (data.code != 201) {
-                            throw new Error('valid response from /post');
-                        }
-                        done();
-                    }
-                });
-            });
+        client.get('/userSettings/getUsers', function (err, req, res, obj) {
+            res.statusCode.should.equal(200);
+            done();
         });
     });
+
+    it('Try to post a new user', function (done) {
+        var client = restify.createJsonClient('http://' + TEST_SERVER + ':' + TEST_PORT);
+        client.agent = false;
+
+        var user = {
+            name: 'Testname',
+            msd: '1234',
+            value: {'tt': 'tt'}
+        };
+
+        client.post('/userSettings', user, function (err, req, res, obj) {
+            res.statusCode.should.equal(201);
+            res.body.should.equal(JSON.stringify(obj));
+            done();
+        });
+    });
+
+    it('Try to find a user by msd', function (done) {
+        var client = restify.createJsonClient('http://' + TEST_SERVER + ':' + TEST_PORT);
+        client.agent = false;
+
+        client.get('/userSettings/getUser?msd=1234', function (err, req, res, obj) {
+            obj.msd.should.equal('1234');
+            res.statusCode.should.equal(200);
+            done();
+        });
+    });
+
 });

@@ -4,7 +4,7 @@
   "description": "R7 MockServer for user settings storage",
   "scripts": {
     "start": "node server.js",
-    "test": "mocha test"
+    "test": "npm start | mocha test"
   },
   "main": "server.js",
   "dependencies": {
@@ -13,7 +13,6 @@
   },
   "devDependencies": {
     "mocha": "*",
-    "should": "*",
-    "supertest": "*"
+    "should": "*"
   }
 }
