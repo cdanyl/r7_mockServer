@@ -11,26 +11,6 @@ var SERVER,
     TEST_PORT = '2387',
     TEST_SERVER = '127.0.0.1';
 
-function postNewUser (req, res, next) {
-    var user = {};
-    user.name = req.params.name;
-    user.msd = req.params.msd;
-    user.value = req.params.value;
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    crud.settings.save(user, function (err, success) {
-        console.log('Response success ' + success);
-        console.log('Response error ' + err);
-        if (success) {
-            res.send(201, user);
-            return next();
-        } else {
-            return next(err);
-        }
-    });
-}
-
 describe('Routing', function () {
 
     before(function (done) {
