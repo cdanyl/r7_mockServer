@@ -1,73 +1,102 @@
-var mongojs = require("mongojs");
+var mongoose = require("mongoose");
+var Schema = mongoose.Schema;
 
-var settings;
+///--- When successfully connected
+var isConnected = false;
 
 var CRUDModule = {};
 
-CRUDModule.connect = function(server) {
-    var db = mongojs(server, ['userSettings']);
-    settings = db.collection("userSettings");
+//CRUDModule.connect = function(server) {
+//    var db = mongojs(server, ['userSettings']);
+//    settings = db.collection("userSettings");
+//};
+
+CRUDModule.connect = function (server) {
+    console.log("server");
+    console.dir(server);
+    if (!isConnected) {
+        mongoose.connection.on('connected', function () {
+            console.log('Mongoose connection open on : ' + server);
+        });
+
+        mongoose.connection.on('error', function () {
+            console.log('Mongoose connection error. Disconnecting');
+        });
+
+        mongoose.connection.on('close', function () {
+            console.log('Mongoose connection closed. Disconnected');
+        });
+
+        mongoose.connect(server);
+    }
 };
 
+var UserSettingsSchema = new mongoose.Schema({
+    name: String,
+    msd: {type: String, index: {unique: true}},
+    value: Object
+});
+
+var userSettingsModel = mongoose.model('userSettingsModel', UserSettingsSchema, 'userSettings');
+
 CRUDModule.findAllUsers = function (req, res, next) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    settings.find().limit(20).sort({postedOn: -1}, function (err, success) {
-        console.log('Response success ' + success);
-        console.log('Response error ' + err);
-        if (success) {
-            res.send(200, success);
+
+    userSettingsModel.find({}, function (err, users) {
+        if (users) {
+            res.send(200, users);
             return next();
         } else {
+            console.error(err);
             return next(err);
         }
 
-    });
+    }).sort({postedOn: -1});
 };
 
 CRUDModule.findUser = function (req, res, next) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    settings.findOne({msd: req.params.msd}, function (err, success) {
-        console.log('Response success ' + success);
-        console.log('Response error ' + err);
-        if (success) {
-            res.send(200, success);
+
+    userSettingsModel.findOne({msd: req.params.msd}, function (err, user) {
+        if (user) {
+            res.send(200, user);
             return next();
         } else {
-            res.send(200, {});
+            console.error(err);
+            res.send(200, 'msd ' + req.params.msd + ' not exist');
         }
         return next(err);
     })
 };
 
 CRUDModule.postNewUser = function (req, res, next) {
-    var user = {};
-    user.name = req.params.name;
-    user.msd = req.params.msd;
-    user.value = req.params.value;
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    var userSettings = new userSettingsModel({
+        name: req.params.name,
+        msd: req.params.msd,
+        value: req.params.value
+    });
 
-    settings.save(user, function (err, success) {
-        console.log('Response success ' + success);
-        console.log('Response error ' + err);
-        if (success) {
-            res.send(201, user);
+    var query = {msd: req.params.msd};
+
+    userSettingsModel.findOneAndUpdate(query, req.body, {upsert: true}, function (err, user) {
+        if (user) {
+            res.send(201, userSettings);
             return next();
         } else {
-            return next(err);
+            console.error(err);
+            res.send(200, 'msd ' + req.params.msd + ' already exist');
         }
+        return next(err);
     });
 };
 
 CRUDModule.deleteUser = function (req, res, next) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    settings.remove({msd: req.params.msd}, function (err, success) {
-        console.log('Response success ' + success);
-        console.log('Response error ' + err);
-        if (success) {
+
+    userSettingsModel.remove({msd: req.params.msd}, function (err, user) {
+        if (user) {
             res.send(200);
             return next();
         } else {
+            console.error(err);
             return next(err);
         }
     })
