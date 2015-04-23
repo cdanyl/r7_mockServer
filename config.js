@@ -11,4 +11,7 @@ var Config = {
     AMAZON_PORT: 8080
 };
 
-exports = module.exports = Config;
+/**
+ * Expose `Config`.
+ */
+module.exports = Config;

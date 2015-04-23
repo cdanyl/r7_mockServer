@@ -1,10 +1,12 @@
 var restify = require('restify'),
-    mongojs = require('mongojs'),
+    mongoose = require("mongoose"),
     should = require('should');
 
 ///--- PROJECT MODULES
 var Config = require('../config');
-var crud = require('../crud');
+var Crud = require('../crud');
+
+var crud = new Crud();
 
 ///--- Globals
 var SERVER,
