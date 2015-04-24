@@ -38,6 +38,10 @@ CRUDModule.prototype.connect = function (server) {
 };
 
 CRUDModule.prototype.findAllUsers = function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", req.header("Access-Control-Request-Method"));
+    res.header("Access-Control-Allow-Headers", req.header("Access-Control-Request-Headers"));
+
     userSettingsModel.find({}, function (err, users) {
         if (users) {
             res.send(200, users);
@@ -63,20 +67,41 @@ CRUDModule.prototype.findUser = function (req, res, next) {
     });
 };
 
+CRUDModule.prototype.getUser = function (req, res, next) {
+
+    var matches = (/MSD:(.*) IFF:(.*)/g).exec(req.headers['x-cpgrp-stb'] || ''),
+        msd = matches && matches[1];
+
+    //if (!msd) { res.send(404); }
+
+    userSettingsModel.findOne({msd: msd}, function (err, user) {
+        if (user) {
+            res.send(200, user.key || {});
+            return next();
+        } else {
+            console.error(err);
+            res.send(404, 'msd ' + msd + ' not exist');
+        }
+        return next(err);
+    });
+};
+
 CRUDModule.prototype.postNewUser = function (req, res, next) {
 
+    var matches = (/MSD:(.*) IFF:(.*)/g).exec(req.headers['x-cpgrp-stb'] || ''),
+        msd = matches && matches[1];
+
+    if (!msd) { res.error(); }
+
     var userSettings = new userSettingsModel({
-        name: req.params.name,
-        msd: req.params.msd,
-        value: req.params.value
+        msd: msd,
+        config: req.params.config
     });
 
-    var query = {msd: req.params.msd};
-
-    userSettingsModel.findOneAndUpdate(query, req.body, {upsert: true}, function (err, user) {
+    userSettings.save(userSettings, function (err, user) {
         console.log(user);
         if (user) {
-            res.send(201, userSettings);
+            res.send(201, userSettings.config);
             return next();
         } else {
             console.error(err);
