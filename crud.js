@@ -2,29 +2,21 @@
  * Module dependencies.
  */
 var mongoose = require("mongoose");
+var UserSettingsSchema = require("./userSettings_schema.js");
 
 /**
  * When successfully connected.
  */
 var isConnected = false;
 
-var UserSettingsSchema = new mongoose.Schema({
-    name: String,
-    msd: {type: String, index: {unique: true}},
-    value: Object
-});
-
 var userSettingsModel = mongoose.model('userSettingsModel', UserSettingsSchema, 'userSettings');
 
 /**
  * @class Initialize a new `CRUDModule`.
  */
-function CRUDModule() {
-}
+function CRUDModule() {}
 
 CRUDModule.prototype.connect = function (server) {
-    console.log("server");
-    console.dir(server);
     if (!isConnected) {
         mongoose.connection.on('connected', function () {
             console.log('Mongoose connection open on : ' + server);
@@ -46,7 +38,6 @@ CRUDModule.prototype.connect = function (server) {
 };
 
 CRUDModule.prototype.findAllUsers = function (req, res, next) {
-
     userSettingsModel.find({}, function (err, users) {
         if (users) {
             res.send(200, users);
@@ -60,7 +51,6 @@ CRUDModule.prototype.findAllUsers = function (req, res, next) {
 };
 
 CRUDModule.prototype.findUser = function (req, res, next) {
-
     userSettingsModel.findOne({msd: req.params.msd}, function (err, user) {
         if (user) {
             res.send(200, user);
@@ -96,7 +86,6 @@ CRUDModule.prototype.postNewUser = function (req, res, next) {
 };
 
 CRUDModule.prototype.deleteUser = function (req, res, next) {
-
     userSettingsModel.remove({msd: req.params.msd}, function (err, user) {
         if (user) {
             res.send(200);
