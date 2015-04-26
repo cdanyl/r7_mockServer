@@ -2,14 +2,40 @@
  * Module dependencies.
  */
 var mongoose = require("mongoose");
-var UserSettingsSchema = require("./userSettings_schema.js");
+
+/**
+ * Mongo db schema
+ */
+var UserSettingsSchema = new mongoose.Schema({
+    msd: {type: String, index: {unique: true}},
+    config: Object
+}, {
+    toObject: {
+        transform: function (doc, ret) {
+            delete ret._id
+        }
+    }
+});
+
+/**
+ * Mongo db model
+ */
+var userSettingsModel = mongoose.model('userSettingsModel', UserSettingsSchema, 'userSettings');
 
 /**
  * When successfully connected.
  */
 var isConnected = false;
 
-var userSettingsModel = mongoose.model('userSettingsModel', UserSettingsSchema, 'userSettings');
+/**
+ * @param {string} header you need to have req.headers['x-cpgrp-stb']
+ * @return {(string|boolean)} MSD or false otherwise
+ */
+function getMSD(header) {
+    var matches = (/MSD:(.*) IFF:(.*)/g).exec(header || '');
+    var msd = matches && matches[1];
+    return msd = (!!msd) ? msd : false;
+}
 
 /**
  * @class Initialize a new `CRUDModule`.
@@ -37,77 +63,46 @@ CRUDModule.prototype.connect = function (server) {
     }
 };
 
-CRUDModule.prototype.findAllUsers = function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", req.header("Access-Control-Request-Method"));
-    res.header("Access-Control-Allow-Headers", req.header("Access-Control-Request-Headers"));
-
-    userSettingsModel.find({}, function (err, users) {
-        if (users) {
-            res.send(200, users);
-            return next();
-        } else {
-            console.error(err);
-            return next(err);
-        }
-
-    }).sort({postedOn: -1});
-};
-
-CRUDModule.prototype.findUser = function (req, res, next) {
-    userSettingsModel.findOne({msd: req.params.msd}, function (err, user) {
-        if (user) {
-            res.send(200, user);
-            return next();
-        } else {
-            console.error(err);
-            res.send(200, 'msd ' + req.params.msd + ' not exist');
-        }
-        return next(err);
-    });
-};
-
 CRUDModule.prototype.getUser = function (req, res, next) {
 
-    var matches = (/MSD:(.*) IFF:(.*)/g).exec(req.headers['x-cpgrp-stb'] || ''),
-        msd = matches && matches[1];
+    var msd = getMSD(req.headers['x-cpgrp-stb']);
 
-    //if (!msd) { res.send(404); }
-
-    userSettingsModel.findOne({msd: msd}, function (err, user) {
-        if (user) {
-            res.send(200, user.key || {});
-            return next();
-        } else {
-            console.error(err);
-            res.send(404, 'msd ' + msd + ' not exist');
-        }
-        return next(err);
-    });
+    if (msd) {
+        return userSettingsModel.findOne({msd: msd}, function (err, user) {
+            if (!user) {
+                res.send(404, 'msd ' + msd + ' not exist');
+                next.ifError(err);
+            }
+            res.send(user);
+            next();
+        });
+    }
+    res.send(404, 'no MSD in header');
 };
 
 CRUDModule.prototype.postNewUser = function (req, res, next) {
 
-    var matches = (/MSD:(.*) IFF:(.*)/g).exec(req.headers['x-cpgrp-stb'] || ''),
-        msd = matches && matches[1];
+    var msd = getMSD(req.headers['x-cpgrp-stb']);
 
-    if (!msd) { res.error(); }
+    if (msd) {
+        var userSettings = new userSettingsModel({
+            msd: msd,
+            config: req.body
+        });
 
-    var userSettings = new userSettingsModel({
-        msd: msd,
-        config: req.params.config
-    });
+        var query = {msd: msd};
 
-    userSettings.save(userSettings, function (err, user) {
-        console.log(user);
-        if (user) {
-            res.send(201, userSettings.config);
-            return next();
-        } else {
-            console.error(err);
-        }
-        return next(err);
-    });
+        return userSettingsModel.findOneAndUpdate(query, userSettings, {upsert: true}, function (err, user) {
+            if (err) {
+                console.error(err);
+                next.ifError(err);
+            }
+            res.send(userSettings);
+            next();
+        });
+    }
+    res.send(404, 'no MSD in header');
+
 };
 
 CRUDModule.prototype.deleteUser = function (req, res, next) {

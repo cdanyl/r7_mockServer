@@ -52,6 +52,6 @@ server.opts(PATH + '/:key', function( req, res, next ) {
 /**
  * Routes
  */
-server.listen(Config.AMAZON_PORT, function () {
+server.listen(Config.AMAZON_PORT, Config.AMAZON_SERVER, function () {
     console.log('%s listening at %s ', server.name, server.url);
 });
