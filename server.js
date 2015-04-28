@@ -31,23 +31,11 @@ crud.connect(Config.DB_SERVER + ':' + Config.DB_PORT + '/' + Config.DB_NAME);
  * Routes
  */
 var PATH = '/userSettings';
-//server.get({path: PATH + '/getUsers', version: API_VERSION}, crud.findAllUsers);
-//server.get({path: PATH + '/getUser', version: API_VERSION}, crud.findUser);
-//server.post({path: PATH, version: API_VERSION}, crud.postNewUser);
-//server.get({path: PATH + '/deleteUser', version: API_VERSION}, crud.deleteUser);
-
+server.opts(PATH + '/:key', crud.authenticate);
+server.get({path: PATH + '/getUsers', version: API_VERSION}, crud.findAllUsers);
 server.get({path: PATH + '/:key', version: API_VERSION}, crud.getUser);
 server.post({path: PATH + '/:key', version: API_VERSION}, crud.postNewUser);
-
-server.opts(PATH + '/:key', function( req, res, next ) {
-    res.header( 'Access-Control-Allow-Origin', '*' );
-    res.header( 'Access-Control-Allow-Method', 'POST, GET, PUT, DELETE, OPTIONS' );
-    res.header( 'Access-Control-Allow-Headers', 'Origin, X-Requested-With, X-File-Name, Content-Type, Cache-Control, X-CPGRP-STB' );
-    if( 'OPTIONS' == req.method ) {
-        res.send( 200, 'OK' );
-    }
-    next();
-});
+server.put({path: PATH + '/:key', version: API_VERSION}, crud.postNewUser);
 
 /**
  * Routes
