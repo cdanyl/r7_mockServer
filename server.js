@@ -32,10 +32,11 @@ crud.connect(Config.DB_SERVER + ':' + Config.DB_PORT + '/' + Config.DB_NAME);
  */
 var PATH = '/userSettings';
 server.opts(PATH + '/:key', crud.authenticate);
-server.get({path: PATH + '/getUsers', version: API_VERSION}, crud.findAllUsers);
-server.get({path: PATH + '/:key', version: API_VERSION}, crud.getUser);
-server.post({path: PATH + '/:key', version: API_VERSION}, crud.postNewUser);
-server.put({path: PATH + '/:key', version: API_VERSION}, crud.postNewUser);
+//server.get({path: PATH + '/getUsers', version: API_VERSION}, crud.findAllUsers);
+server.get({path: PATH + '/:store', version: API_VERSION}, crud.getUserSettings);
+server.post({path: PATH + '/:store', version: API_VERSION}, crud.postUserSettings);
+server.put({path: PATH + '/:store', version: API_VERSION}, crud.postUserSettings);
+server.del({path: PATH + '/:store', version: API_VERSION}, crud.deleteUserSettings);
 
 /**
  * Routes

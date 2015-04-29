@@ -8,8 +8,9 @@ var restify = require('restify');
  * Mongo db schema
  */
 var UserSettingsSchema = new mongoose.Schema({
-    msd: {type: String, index: {unique: true}},
-    config: Object
+    msd: {type: String, index: true},
+    store: {type: String, index: true},
+    data: Object
 }, {
     toObject: {
         transform: function (doc, ret) {
@@ -105,12 +106,13 @@ CRUDModule.prototype.findAllUsers = function (req, res, next) {
  * @param req
  * @param res
  * @param next
- * @returns Returns and respond one document that satisfies the specified query criteria.
+ * @returns Respond one document that satisfies the specified query criteria.
  */
-CRUDModule.prototype.getUser = function (req, res, next) {
+CRUDModule.prototype.getUserSettings = function (req, res, next) {
 
-    if (!req.params.key) {
-        req.log.warn('postNewUser: missing query params');
+    var store = req.params.store;
+    if (!store) {
+        req.log.warn('getUserSettings: missing query params');
         next(new restify.MissingParameterError('Missing a required parameter'));
         return;
     }
@@ -118,17 +120,18 @@ CRUDModule.prototype.getUser = function (req, res, next) {
     var msd = getMSD(req.headers['x-cpgrp-stb']);
 
     if (!msd) {
-        req.log.warn('postNewUser: missing header MSD params');
+        req.log.warn('getUserSettings: missing header MSD params');
         next(new restify.InvalidHeaderError('Missing MSD in header'));
         return;
     }
 
-    return userSettingsModel.findOne({msd: msd}, function (err, user) {
-        if (!user) {
-            res.send(404, 'msd ' + msd + ' not exist');
+    return userSettingsModel.findOne({msd: msd, store: store}, function (err, settings) {
+        if (!settings) {
+            res.send(404, 'msd/store ' + msd + '/' + store + ' not exist');
             next.ifError(err);
         }
-        res.send(user);
+
+        res.send(settings.data);
         next();
     });
 
@@ -142,12 +145,13 @@ CRUDModule.prototype.getUser = function (req, res, next) {
  * @param req
  * @param res
  * @param next
- * @returns returns and respond one document that satisfies the specified query criteria.
+ * @returns Respond one document that satisfies the specified query criteria.
  */
-CRUDModule.prototype.postNewUser = function (req, res, next) {
+CRUDModule.prototype.postUserSettings = function (req, res, next) {
 
-    if (!req.params.key) {
-        req.log.warn('postNewUser: missing query params');
+    var store = req.params.store;
+    if (!req.params.store) {
+        req.log.warn('postUserSettings: missing query params');
         next(new restify.MissingParameterError('Missing a required parameter'));
         return;
     }
@@ -155,31 +159,56 @@ CRUDModule.prototype.postNewUser = function (req, res, next) {
     var msd = getMSD(req.headers['x-cpgrp-stb']);
 
     if (!msd) {
-        req.log.warn('postNewUser: missing header MSD params');
+        req.log.warn('postUserSettings: missing header MSD params');
         next(new restify.InvalidHeaderError('Missing MSD in header'));
         return;
     }
 
     var userSettings = new userSettingsModel({
-        config: req.body
+        data: req.body
     });
 
-    var query = {msd: msd};
+    var query = {msd: msd, store: store};
 
-    return userSettingsModel.findOneAndUpdate(query, userSettings, {upsert: true}, function (err, user) {
+    return userSettingsModel.findOneAndUpdate(query, userSettings, {upsert: true, new: true}, function (err, settings) {
+
         if (err) {
-            console.error(err);
+            res.send(404, 'no settings');
             next.ifError(err);
         }
-        res.send(req.body);
+        res.send(settings.data);
         next();
     });
 
 };
 
-CRUDModule.prototype.deleteUser = function (req, res, next) {
+/**
+ * Note this handler looks in `req.params` and 'req.header'.
+ * Which must  have `key` and `msd` available in req.params.
+ * Otherwise return/send an error to the client.
+ * @param req
+ * @param res
+ * @param next
+ * @returns Delete the document that satisfies the specified query criteria.
+ */
+CRUDModule.prototype.deleteUserSettings = function (req, res, next) {
 
-    userSettingsModel.remove({msd: req.params.msd}, function (err, user) {
+    var store = req.params.store;
+    if (!req.params.store) {
+        req.log.warn('deleteUserSettings: missing query params');
+        next(new restify.MissingParameterError('Missing a required parameter'));
+        return;
+    }
+
+    var msd = getMSD(req.headers['x-cpgrp-stb']);
+
+    if (!msd) {
+        req.log.warn('deleteUserSettings: missing header MSD params');
+        next(new restify.InvalidHeaderError('Missing MSD in header'));
+        return;
+    }
+
+    userSettingsModel.remove({msd: msd, store: store}, function (err, user) {
         if (user) {
             res.send(200);
             return next();
